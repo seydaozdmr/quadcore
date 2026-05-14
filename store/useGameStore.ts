@@ -101,6 +101,7 @@ export const useGameStore = create<GameStore>()(
     }),
     {
       name: 'retro-opoly-store',
+      skipHydration: true,
       partialize: (s) => ({
         retroNotes: s.retroNotes,
         agenda: s.agenda,
