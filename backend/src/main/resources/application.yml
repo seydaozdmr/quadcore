@@ -1,0 +1,38 @@
+spring:
+  application:
+    name: retroaction
+  datasource:
+    url: ${DB_URL:jdbc:h2:mem:retrodb}
+    username: ${DB_USERNAME:sa}
+    password: ${DB_PASSWORD:}
+    driver-class-name: ${DB_DRIVER:org.h2.Driver}
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+server:
+  port: 8080
+
+# AI Configuration
+openai:
+  api-key: ${OPENAI_API_KEY:}
+  model: ${OPENAI_MODEL:gpt-4o-mini}
+  embedding-model: ${OPENAI_EMBEDDING_MODEL:text-embedding-3-small}
+
+anthropic:
+  api-key: ${ANTHROPIC_API_KEY:}
+  model: ${ANTHROPIC_MODEL:claude-sonnet-4-20250514}
+
+# Similarity Search
+retroaction:
+  similarity:
+    threshold: ${SIMILARITY_THRESHOLD:0.78}
+    max-results: ${SIMILARITY_MAX_RESULTS:5}
