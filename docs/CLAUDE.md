@@ -6,7 +6,7 @@ AI-powered Agile Retrospective and Action Tracking Platform.
 
 - **Pattern**: Hexagonal Architecture (Port/Adapter), DDD bounded contexts
 - **Backend**: Spring Boot 3.3, Java 21
-- **Frontend**: Angular 18 (Standalone Components + Signals)
+- **Frontend**: Next.js 15 (App Router), React 18, Tailwind CSS, Zustand, Vercel AI SDK
 - **Database**: H2 in-memory (dev), PostgreSQL 16 + pgvector (prod)
 - **Profiles**: `mock` (no API key), `openai`, `anthropic`
 
@@ -70,7 +70,7 @@ Projemizde yapay zeka, sıradan bir metin üretici değil, "Sürecin Yöneticisi
 - **Prompt Stratejisi:** `Oyun loglarını (kim kaç kudos verdi, kim en çok aksiyonu üstlendi) incele. Her oyuncuya 'Ekip Koşucusu', 'Retro Gevezesi' gibi oyunlaştırma elementlerine uygun eğlenceli unvanlar ata.`
 
 ## 🛠️ Teknik Altyapı
-- **Frontend Framework:** Angular 18 (Standalone Components + Signals)
+- **Frontend Framework:** Next.js 15 (App Router), React 18, Tailwind CSS, Zustand, Vercel AI SDK
 - **Backend:** Spring Boot 3.3, Java 21
 - **AI Entegrasyonu:** Claude (Anthropic) / OpenAI API — `LlmPort` adaptör mimarisi
 

@@ -1,1 +1,34 @@
-hello world!
+Ekranda bir playing board olacak. monopoly zemini gibi. 
+Bu playing board 6x6 boyutunda olsun. Toplam 36 istasyondan oluşacak.
+
+1 - başlangıç istasyonu
+
+4 kategorimiz olacak. 
+
+1. "Retro gündemi çek"
+12 tane olmalı
+
+2. "Retro Aksiyonu üstlen" 
+8 tane olmalı
+
+3. "Oyun aksiyon kartı çek"
+8 tane olmalı
+
+4. Hareket görevleri (Bekle / 2 adım İleri Git / 1 Adım Geri Gel)
+Toplam 6 tane olmalı
+Bekle - 2 tane
+2 adım İleri Git - 2 tane
+1 Adım Geri Gel - 2 tane
+
+bu belirlediklerimle bir playing board oluştur.
+
+
+3 tane kart destemiz olacak. 
+
+1 - Retro Gündemleri (kaç tane giriş yapılırsa)
+2 - Retro Aksiyonları (gündemler konuşuldukça oluşur)
+3 - Serbest kartlar  ( farklılaştırılacak toplamda 20 tane olsun, tekrarlayabilir.)
+		"Kudos Ver"
+		"Bu sprint neyi farklı yapmalıydık?"
+		"Sprintten komik bir anı anlat"
+		...
