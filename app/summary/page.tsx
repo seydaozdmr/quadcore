@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import {
   Trophy, ChevronLeft, Clock, Users, ListChecks,
-  CheckCircle2, Sparkles, UserCircle2,
+  CheckCircle2, Sparkles, UserCircle2, Crown, Leaf,
 } from 'lucide-react'
 import { useGameStore, type SavedAction } from '@/store/useGameStore'
 
@@ -187,6 +187,12 @@ export default function SummaryPage() {
 
   const ownedCount = actions.filter((a) => a.owner).length
   const ownerSet   = new Set(actions.filter((a) => a.owner).map((a) => a.owner!))
+
+  // Şampiyon (en çok aksiyon alan) / En sakin (en az aksiyon alan) — sahipsizler hariç
+  const rankedOwners = grouped.filter((g) => g.owner !== 'Sahipsiz')
+  const topOwner    = rankedOwners[0] ?? null
+  const bottomOwner =
+    rankedOwners.length > 1 ? rankedOwners[rankedOwners.length - 1] : null
   // Katılımcı sayısı: gerçek owner'lar → store'daki oyuncular → retro notu yazanlar
   const participantCount =
     ownerSet.size ||
@@ -254,6 +260,61 @@ export default function SummaryPage() {
           <StatCard icon={CheckCircle2} value={ownedCount} label="Sahiplenildi" />
           <StatCard icon={Users} value={participantCount} label="Katılımcı" />
         </section>
+
+        {/* Rankings: en çok / en az aksiyon alan */}
+        {topOwner && (
+          <section className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="card p-5 flex items-center gap-4 border-amber-500/30 bg-gradient-to-br from-amber-500/10 to-transparent">
+              <div className="w-11 h-11 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center shrink-0">
+                <Crown className="w-5 h-5 text-amber-400" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] font-bold text-amber-400 uppercase tracking-wider">
+                  En çok aksiyon alan
+                </p>
+                <p className="text-base font-semibold text-slate-100 truncate">
+                  {topOwner.owner}
+                </p>
+                <p className="text-xs text-slate-500">
+                  {topOwner.actions.length} aksiyon üstlendi
+                </p>
+              </div>
+            </div>
+
+            {bottomOwner ? (
+              <div className="card p-5 flex items-center gap-4 border-sky-500/30 bg-gradient-to-br from-sky-500/10 to-transparent">
+                <div className="w-11 h-11 rounded-xl bg-sky-500/20 border border-sky-500/30 flex items-center justify-center shrink-0">
+                  <Leaf className="w-5 h-5 text-sky-300" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[11px] font-bold text-sky-300 uppercase tracking-wider">
+                    En az aksiyon alan
+                  </p>
+                  <p className="text-base font-semibold text-slate-100 truncate">
+                    {bottomOwner.owner}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    {bottomOwner.actions.length} aksiyon üstlendi
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="card p-5 flex items-center gap-4 border-slate-700/60">
+                <div className="w-11 h-11 rounded-xl bg-slate-700/40 border border-slate-600/40 flex items-center justify-center shrink-0">
+                  <Leaf className="w-5 h-5 text-slate-500" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                    En az aksiyon alan
+                  </p>
+                  <p className="text-sm text-slate-400">
+                    Henüz karşılaştırma için yeterli kişi yok
+                  </p>
+                </div>
+              </div>
+            )}
+          </section>
+        )}
 
         {/* Owners */}
         <section className="space-y-4">
