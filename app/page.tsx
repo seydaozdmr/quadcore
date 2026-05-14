@@ -2,13 +2,13 @@
 
 import { useState } from 'react'
 import {
-  CheckCircle2, TrendingUp, Sparkles,
-  ChevronRight, UserCircle2, Trash2, ClipboardList,
+  Shuffle, Sparkles, UserCircle2, CheckCircle2,
+  ChevronRight, RefreshCw, Layers, Trophy,
 } from 'lucide-react'
 import SmartActionModal from '@/components/SmartActionModal'
 import { useGameStore, type SavedAction } from '@/store/useGameStore'
 
-// ─── Data ────────────────────────────────────────────────────────────────────
+// ─── Dummy Gündem ─────────────────────────────────────────────────────────────
 
 const TEAM = ['Şeyda', 'Neşe', 'Soner', 'Haluk']
 
@@ -26,73 +26,90 @@ const AGENDA: AgendaItem[] = [
   { id: 'i5', text: 'Deployment süreci hâlâ manuel adımlar içeriyor, otomasyon gerekli', author: 'Neşe', category: 'improve' },
 ]
 
-// ─── Agenda Card ─────────────────────────────────────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function AgendaCard({
-  item, selected, onClick,
-}: { item: AgendaItem; selected: boolean; onClick: () => void }) {
-  const isWell = item.category === 'went-well'
-  const base = 'group w-full text-left p-3.5 rounded-xl border transition-all duration-150 cursor-pointer'
-  const idle = 'border-slate-700/60 bg-slate-800/40 hover:bg-slate-800 hover:border-slate-600'
-  const active = isWell
-    ? 'border-emerald-500/50 bg-emerald-500/8 ring-1 ring-emerald-500/20'
-    : 'border-amber-500/50 bg-amber-500/8 ring-1 ring-amber-500/20'
+function pickRandom<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)]
+}
+
+// ─── Card Deck visual ────────────────────────────────────────────────────────
+
+function CardDeck({ label, count, onClick, color = 'indigo', disabled = false }: {
+  label: string; count?: number; onClick: () => void;
+  color?: 'indigo' | 'amber'; disabled?: boolean
+}) {
+  const accent = color === 'amber'
+    ? { ring: 'ring-amber-500/30', bg: 'bg-amber-500', text: 'text-amber-400', hover: 'hover:border-amber-500/60 hover:bg-amber-500/10' }
+    : { ring: 'ring-indigo-500/30', bg: 'bg-indigo-500', text: 'text-indigo-400', hover: 'hover:border-indigo-500/60 hover:bg-indigo-500/10' }
 
   return (
-    <button className={`${base} ${selected ? active : idle}`} onClick={onClick}>
-      <p className="text-sm text-slate-200 leading-relaxed">{item.text}</p>
-      <div className="flex items-center justify-between mt-2">
-        <span className="text-xs text-slate-500">{item.author}</span>
-        {selected && (
-          <span className={`text-xs font-medium flex items-center gap-0.5 ${isWell ? 'text-emerald-400' : 'text-amber-400'}`}>
-            Seçildi <CheckCircle2 className="w-3 h-3" />
-          </span>
-        )}
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`relative w-full group transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed`}
+    >
+      {/* Stack shadow cards */}
+      <div className="absolute inset-0 translate-x-2 translate-y-2 bg-slate-700/40 rounded-2xl" />
+      <div className="absolute inset-0 translate-x-1 translate-y-1 bg-slate-700/60 rounded-2xl" />
+      {/* Main card */}
+      <div className={`relative bg-slate-800 border border-slate-700 rounded-2xl p-6 flex flex-col items-center gap-3
+        transition-all group-hover:border-slate-600 group-hover:-translate-y-0.5 group-hover:shadow-xl
+        ${!disabled ? accent.hover : ''}`}
+      >
+        <div className={`w-12 h-12 rounded-xl ${disabled ? 'bg-slate-700' : accent.bg + '/20'} flex items-center justify-center`}>
+          <Shuffle className={`w-6 h-6 ${disabled ? 'text-slate-600' : accent.text}`} />
+        </div>
+        <div className="text-center">
+          <p className={`text-sm font-semibold ${disabled ? 'text-slate-600' : 'text-slate-200'}`}>{label}</p>
+          {count !== undefined && (
+            <p className="text-xs text-slate-500 mt-0.5">{count} kart mevcut</p>
+          )}
+        </div>
       </div>
     </button>
   )
 }
 
-// ─── Action Card ─────────────────────────────────────────────────────────────
+// ─── Drawn Card ───────────────────────────────────────────────────────────────
 
-function ActionCard({ action }: { action: SavedAction }) {
-  const setOwner  = useGameStore((s) => s.setActionOwner)
-  const remove    = useGameStore((s) => s.removeAction)
-  const owned     = !!action.owner
+function DrawnCard({ item, onRedraw }: { item: AgendaItem; onRedraw: () => void }) {
+  const isWell = item.category === 'went-well'
+  const color = isWell ? 'border-emerald-500/40 bg-emerald-500/8' : 'border-amber-500/40 bg-amber-500/8'
+  const dot   = isWell ? 'bg-emerald-400' : 'bg-amber-400'
+  const label = isWell ? 'İyi Gitti' : 'İyileştir'
+  const labelColor = isWell ? 'text-emerald-400' : 'text-amber-400'
 
   return (
-    <div className={`card p-4 space-y-3 transition-all ${owned ? 'border-indigo-500/30' : ''}`}>
-      {action.agendaTitle && (
-        <p className="text-[11px] text-slate-500 truncate leading-none">
-          {action.agendaTitle}
-        </p>
-      )}
-      <p className="text-sm text-slate-100 leading-relaxed">{action.action}</p>
-
-      <div className="flex items-center gap-2 pt-1 border-t border-slate-700/60">
-        <UserCircle2 className="w-4 h-4 text-slate-500 shrink-0" />
-        <select
-          value={action.owner ?? ''}
-          onChange={(e) => setOwner(action.id, e.target.value)}
-          className="flex-1 bg-slate-700/60 border border-slate-600/60 text-sm text-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-500/60 cursor-pointer"
-        >
-          <option value="">Sahip ata...</option>
-          {TEAM.map((m) => <option key={m} value={m}>{m}</option>)}
-        </select>
+    <div className={`relative border rounded-2xl p-5 space-y-3 ${color}`}>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className={`w-2 h-2 rounded-full ${dot}`} />
+          <span className={`text-xs font-semibold ${labelColor}`}>{label}</span>
+        </div>
         <button
-          onClick={() => remove(action.id)}
-          className="p-1.5 text-slate-600 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
+          onClick={onRedraw}
+          className="text-slate-500 hover:text-slate-300 transition-colors flex items-center gap-1 text-xs"
         >
-          <Trash2 className="w-3.5 h-3.5" />
+          <RefreshCw className="w-3 h-3" /> Tekrar çek
         </button>
       </div>
+      <p className="text-base text-slate-100 leading-relaxed font-medium">{item.text}</p>
+      <p className="text-xs text-slate-500">— {item.author}</p>
+    </div>
+  )
+}
 
-      {owned && (
-        <p className="text-xs text-emerald-400 flex items-center gap-1.5">
-          <CheckCircle2 className="w-3.5 h-3.5" />
-          {action.owner} tarafından sahiplenildi
-        </p>
-      )}
+// ─── Owned Actions list ───────────────────────────────────────────────────────
+
+function OwnedActionCard({ action }: { action: SavedAction }) {
+  return (
+    <div className="card p-4 space-y-2 border-emerald-500/20">
+      <p className="text-sm text-slate-200 leading-relaxed">{action.action}</p>
+      <div className="flex items-center gap-1.5 text-xs text-emerald-400">
+        <CheckCircle2 className="w-3.5 h-3.5" />
+        <span className="font-medium">{action.owner}</span>
+        <span className="text-slate-600">tarafından sahiplenildi</span>
+      </div>
     </div>
   )
 }
@@ -100,114 +117,172 @@ function ActionCard({ action }: { action: SavedAction }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function Home() {
-  const [selected, setSelected] = useState<AgendaItem | null>(null)
-  const [modalOpen, setModalOpen] = useState(false)
-  const actions = useGameStore((s) => s.actions)
+  // Step 1 — Gündem
+  const [drawnItem, setDrawnItem]     = useState<AgendaItem | null>(null)
+  // Step 2 — Aksiyon
+  const [actionText, setActionText]   = useState('')
+  const [modalOpen, setModalOpen]     = useState(false)
+  // Step 3 — Sahiplenme
+  const [drawnAction, setDrawnAction] = useState<SavedAction | null>(null)
+  const [ownerPick, setOwnerPick]     = useState('')
 
-  const wentWell = AGENDA.filter((a) => a.category === 'went-well')
-  const improve  = AGENDA.filter((a) => a.category === 'improve')
+  const actions        = useGameStore((s) => s.actions)
+  const setActionOwner = useGameStore((s) => s.setActionOwner)
 
-  function toggle(item: AgendaItem) {
-    setSelected((prev) => (prev?.id === item.id ? null : item))
+  const unowned = actions.filter((a) => !a.owner)
+  const owned   = actions.filter((a) =>  a.owner)
+
+  function drawAgenda() {
+    setDrawnItem(pickRandom(AGENDA))
+    setActionText('')
+  }
+
+  function drawActionCard() {
+    if (!unowned.length) return
+    setDrawnAction(pickRandom(unowned))
+    setOwnerPick('')
+  }
+
+  function assignOwner() {
+    if (!drawnAction || !ownerPick) return
+    setActionOwner(drawnAction.id, ownerPick)
+    setDrawnAction(null)
+    setOwnerPick('')
   }
 
   return (
     <div className="min-h-screen">
-      {/* Top bar */}
+      {/* Header */}
       <header className="border-b border-slate-800 px-6 py-4 flex items-center justify-between sticky top-0 bg-[#0d0f1a]/80 backdrop-blur-md z-10">
         <div className="flex items-center gap-3">
-          <div className="w-7 h-7 bg-indigo-600 rounded-lg flex items-center justify-center text-base">🎲</div>
+          <div className="w-7 h-7 bg-indigo-600 rounded-lg flex items-center justify-center">🎲</div>
           <span className="font-semibold text-white text-sm">Retro-Opoly</span>
         </div>
-        <span className="text-xs text-slate-500 bg-slate-800 px-2.5 py-1 rounded-full">Sprint 16</span>
+        <div className="flex items-center gap-3 text-xs text-slate-500">
+          <span className="bg-slate-800 px-2.5 py-1 rounded-full">Sprint 16</span>
+          <span>{actions.length} aksiyon · {owned.length} sahiplenildi</span>
+        </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-10">
+      <main className="max-w-3xl mx-auto px-4 sm:px-6 py-10 space-y-10">
 
-        {/* ── 1. Retro Gündem ── */}
-        <section>
-          <p className="section-title">Retro Gündemi</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        {/* ── ADIM 1 ── */}
+        <section className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="w-7 h-7 bg-indigo-600/20 border border-indigo-500/30 rounded-lg flex items-center justify-center text-xs font-bold text-indigo-400">1</div>
+            <p className="text-sm font-semibold text-slate-200">Gündem Kartı Çek</p>
+          </div>
 
-            {/* İyi Gitti */}
-            <div className="card p-4 space-y-2">
-              <div className="flex items-center gap-2 pb-2 border-b border-slate-700/60 mb-1">
-                <div className="w-2 h-2 rounded-full bg-emerald-400" />
-                <span className="text-sm font-semibold text-emerald-400">İyi Gitti</span>
-                <span className="ml-auto text-xs text-slate-500">{wentWell.length} madde</span>
-              </div>
-              {wentWell.map((item) => (
-                <AgendaCard key={item.id} item={item} selected={selected?.id === item.id} onClick={() => toggle(item)} />
-              ))}
-            </div>
+          {!drawnItem ? (
+            <CardDeck label="Gündem Kartı Çek" count={AGENDA.length} onClick={drawAgenda} color="indigo" />
+          ) : (
+            <DrawnCard item={drawnItem} onRedraw={drawAgenda} />
+          )}
+        </section>
 
-            {/* İyileştir */}
-            <div className="card p-4 space-y-2">
-              <div className="flex items-center gap-2 pb-2 border-b border-slate-700/60 mb-1">
-                <div className="w-2 h-2 rounded-full bg-amber-400" />
-                <span className="text-sm font-semibold text-amber-400">İyileştir</span>
-                <span className="ml-auto text-xs text-slate-500">{improve.length} madde</span>
-              </div>
-              {improve.map((item) => (
-                <AgendaCard key={item.id} item={item} selected={selected?.id === item.id} onClick={() => toggle(item)} />
-              ))}
-            </div>
+        {/* ── ADIM 2 ── */}
+        <section className={`space-y-4 transition-opacity duration-300 ${drawnItem ? 'opacity-100' : 'opacity-30 pointer-events-none'}`}>
+          <div className="flex items-center gap-3">
+            <div className="w-7 h-7 bg-amber-500/20 border border-amber-500/30 rounded-lg flex items-center justify-center text-xs font-bold text-amber-400">2</div>
+            <p className="text-sm font-semibold text-slate-200">Aksiyon Yaz & Değerlendir</p>
+          </div>
+
+          <div className="card p-5 space-y-4">
+            <textarea
+              rows={3}
+              value={actionText}
+              onChange={(e) => setActionText(e.target.value)}
+              placeholder='Bu konu için ne yapmalıyız? Örn: "Deployment otomasyonu sağlayacağız"'
+              className="w-full bg-slate-700/50 border border-slate-600/60 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder-slate-500 resize-none focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500/60 transition-all"
+            />
+            <button
+              onClick={() => setModalOpen(true)}
+              disabled={!actionText.trim()}
+              className="btn-amber w-full justify-center disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Sparkles className="w-4 h-4" />
+              LLM ile SMART Değerlendir
+              <ChevronRight className="w-4 h-4" />
+            </button>
           </div>
         </section>
 
-        {/* ── 2. Aksiyon Oluştur ── */}
-        <section>
-          <p className="section-title">Aksiyon Oluştur</p>
-          <div className={`card p-5 transition-all ${selected ? 'border-indigo-500/40 bg-indigo-500/5' : ''}`}>
-            {selected ? (
-              <div className="flex flex-col sm:flex-row sm:items-start gap-4">
-                <div className="flex-1 space-y-1">
-                  <p className="text-[11px] text-slate-500 uppercase tracking-wide font-medium">Seçili konu</p>
-                  <p className="text-sm text-slate-200 leading-relaxed">{selected.text}</p>
-                  <p className="text-xs text-slate-500">— {selected.author}</p>
+        {/* ── ADIM 3 ── */}
+        <section className={`space-y-4 transition-opacity duration-300 ${unowned.length > 0 || owned.length > 0 ? 'opacity-100' : 'opacity-30 pointer-events-none'}`}>
+          <div className="flex items-center gap-3">
+            <div className="w-7 h-7 bg-emerald-500/20 border border-emerald-500/30 rounded-lg flex items-center justify-center text-xs font-bold text-emerald-400">3</div>
+            <p className="text-sm font-semibold text-slate-200">Aksiyon Kartı Çek & Sahiplen</p>
+            {unowned.length > 0 && (
+              <span className="ml-auto text-xs text-slate-500">{unowned.length} bekliyor</span>
+            )}
+          </div>
+
+          {/* Draw action card */}
+          {!drawnAction ? (
+            <CardDeck
+              label="Aksiyon Kartı Çek"
+              count={unowned.length}
+              onClick={drawActionCard}
+              color="amber"
+              disabled={unowned.length === 0}
+            />
+          ) : (
+            <div className="card border-amber-500/30 p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-amber-400" />
+                  <span className="text-xs font-semibold text-amber-400">Aksiyon Kartı</span>
+                </div>
+                {unowned.length > 1 && (
+                  <button
+                    onClick={drawActionCard}
+                    className="text-slate-500 hover:text-slate-300 text-xs flex items-center gap-1 transition-colors"
+                  >
+                    <RefreshCw className="w-3 h-3" /> Başkasını çek
+                  </button>
+                )}
+              </div>
+
+              {drawnAction.agendaTitle && (
+                <p className="text-xs text-slate-500">{drawnAction.agendaTitle}</p>
+              )}
+              <p className="text-sm text-slate-100 leading-relaxed font-medium">{drawnAction.action}</p>
+
+              {/* Owner assignment */}
+              <div className="flex gap-2 pt-2 border-t border-slate-700/60">
+                <div className="flex items-center gap-2 flex-1 bg-slate-700/50 border border-slate-600/60 rounded-xl px-3 py-2">
+                  <UserCircle2 className="w-4 h-4 text-slate-500 shrink-0" />
+                  <select
+                    value={ownerPick}
+                    onChange={(e) => setOwnerPick(e.target.value)}
+                    className="flex-1 bg-transparent text-sm text-slate-200 focus:outline-none cursor-pointer"
+                  >
+                    <option value="">Kim sahiplensin?</option>
+                    {TEAM.map((m) => <option key={m} value={m}>{m}</option>)}
+                  </select>
                 </div>
                 <button
-                  onClick={() => setModalOpen(true)}
-                  className="btn-amber shrink-0 self-start sm:self-center"
+                  onClick={assignOwner}
+                  disabled={!ownerPick}
+                  className="btn-primary disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  <Sparkles className="w-4 h-4" />
-                  SMART Analiz Et
-                  <ChevronRight className="w-3.5 h-3.5" />
+                  <CheckCircle2 className="w-4 h-4" />
+                  Sahiplen
                 </button>
               </div>
-            ) : (
-              <div className="flex items-center gap-3 py-1">
-                <div className="w-8 h-8 rounded-xl bg-slate-700/60 flex items-center justify-center shrink-0">
-                  <Sparkles className="w-4 h-4 text-slate-500" />
-                </div>
-                <p className="text-sm text-slate-500">
-                  Yukarıdan bir gündem maddesi seç, ardından SMART aksiyon oluştur.
-                </p>
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* ── 3. Aksiyonlar ── */}
-        <section>
-          <div className="flex items-center gap-2 mb-4">
-            <p className="section-title mb-0">Aksiyonlar</p>
-            {actions.length > 0 && (
-              <span className="text-[11px] font-bold bg-indigo-600 text-white px-2 py-0.5 rounded-full">
-                {actions.length}
-              </span>
-            )}
-          </div>
-
-          {actions.length === 0 ? (
-            <div className="card border-dashed p-10 flex flex-col items-center gap-3 text-center">
-              <ClipboardList className="w-8 h-8 text-slate-600" />
-              <p className="text-sm text-slate-500">Henüz aksiyon yok.</p>
-              <p className="text-xs text-slate-600">Bir gündem maddesi seçip SMART analiz yap.</p>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {actions.map((a) => <ActionCard key={a.id} action={a} />)}
+          )}
+
+          {/* Owned actions */}
+          {owned.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Trophy className="w-3.5 h-3.5 text-emerald-400" />
+                <p className="text-xs text-emerald-400 font-semibold">{owned.length} Sahiplenildi</p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {owned.map((a) => <OwnedActionCard key={a.id} action={a} />)}
+              </div>
             </div>
           )}
         </section>
@@ -216,8 +291,9 @@ export default function Home() {
       <SmartActionModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        agendaCardId={selected?.id ?? ''}
-        agendaTitle={selected?.text ?? ''}
+        agendaCardId={drawnItem?.id ?? ''}
+        agendaTitle={drawnItem?.text ?? ''}
+        initialText={actionText}
       />
     </div>
   )

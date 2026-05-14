@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import {
   X, Loader2, CheckCircle2, AlertTriangle, XCircle, Sparkles, AlertCircle,
@@ -19,6 +19,7 @@ interface SmartActionModalProps {
   onClose: () => void
   agendaCardId?: string
   agendaTitle?: string
+  initialText?: string
 }
 
 function scoreConfig(score: number) {
@@ -56,12 +57,14 @@ function ScoreBar({ score }: { score: number }) {
 }
 
 export default function SmartActionModal({
-  open, onClose, agendaCardId = '', agendaTitle = '',
+  open, onClose, agendaCardId = '', agendaTitle = '', initialText = '',
 }: SmartActionModalProps) {
-  const [rawAction, setRawAction] = useState('')
+  const [rawAction, setRawAction] = useState(initialText)
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<SmartResult | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => { if (open) setRawAction(initialText) }, [open, initialText])
 
   const addAction = useGameStore((s) => s.addAction)
 
