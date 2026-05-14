@@ -50,6 +50,9 @@ interface GameStore {
   agenda: AgendaItem[]
   agendaReady: boolean
 
+  // Oyun zamanlaması
+  gameStartedAt: number | null
+
   // Oyuncu state
   players: Player[]
   currentPlayerIndex: number
@@ -82,6 +85,9 @@ export const useGameStore = create<GameStore>()(
       agenda: [],
       agendaReady: false,
 
+      // Oyun zamanlaması
+      gameStartedAt: null,
+
       // Oyuncu state
       players: DEFAULT_PLAYERS,
       currentPlayerIndex: 0,
@@ -108,7 +114,12 @@ export const useGameStore = create<GameStore>()(
         })),
 
       resetGame: () =>
-        set({ players: DEFAULT_PLAYERS, currentPlayerIndex: 0, actions: [] }),
+        set({
+          players: DEFAULT_PLAYERS,
+          currentPlayerIndex: 0,
+          actions: [],
+          gameStartedAt: null,
+        }),
 
       // Aksiyon state
       actions: [],
@@ -119,6 +130,7 @@ export const useGameStore = create<GameStore>()(
             ...s.retroNotes,
             { id: crypto.randomUUID(), text, author },
           ],
+          gameStartedAt: s.gameStartedAt ?? Date.now(),
         })),
 
       removeRetroNote: (id) =>
@@ -143,6 +155,7 @@ export const useGameStore = create<GameStore>()(
               createdAt: Date.now(),
             },
           ],
+          gameStartedAt: s.gameStartedAt ?? Date.now(),
         })),
 
       setActionOwner: (id, owner) =>
@@ -163,6 +176,7 @@ export const useGameStore = create<GameStore>()(
         actions: s.actions,
         players: s.players,
         currentPlayerIndex: s.currentPlayerIndex,
+        gameStartedAt: s.gameStartedAt,
       }),
     }
   )

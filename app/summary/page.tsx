@@ -1,59 +1,52 @@
 'use client'
 
 import Link from 'next/link'
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Trophy, ChevronLeft, Clock, Users, ListChecks,
   CheckCircle2, Sparkles, UserCircle2,
 } from 'lucide-react'
 import { useGameStore, type SavedAction } from '@/store/useGameStore'
 
-// ─── Fallback dummy actions (oyun oynanmamışsa) ────────────────────────────────
+// ─── Demo fallback (oyun hiç oynanmamışsa: boş state yerine örnek göster) ──────
 
-const DUMMY_ACTIONS: SavedAction[] = [
+const DEMO_ACTION_TEMPLATES: { action: string; agendaTitle: string }[] = [
   {
-    id: 'd1',
     action: 'Sprint planning toplantısını 2 saate düşüreceğiz, gündem önceden paylaşılacak',
-    agendaCardId: 'i1',
     agendaTitle: 'Sprint planning toplantıları 4 saati aşıyor',
-    owner: 'Şeyda',
-    createdAt: Date.now() - 1000 * 60 * 32,
   },
   {
-    id: 'd2',
     action: 'Test coverage hedefi olarak yeni eklenen dosyalarda %80, mevcut kodda %65 belirlenecek',
-    agendaCardId: 'i2',
     agendaTitle: "Test coverage %58'de kaldı",
-    owner: 'Neşe',
-    createdAt: Date.now() - 1000 * 60 * 25,
   },
   {
-    id: 'd3',
     action: "PR'ların max 400 satır olması için lint kuralı eklenecek",
-    agendaCardId: 'i3',
     agendaTitle: "PR'lar çok büyük oluyor",
-    owner: 'Soner',
-    createdAt: Date.now() - 1000 * 60 * 18,
   },
   {
-    id: 'd4',
     action: 'Sprint başına 1 gün refactoring slot ayrılacak, retro çıktıları önceliklendirilecek',
-    agendaCardId: 'i4',
     agendaTitle: 'Teknik borç birikmeye devam ediyor',
-    owner: 'Haluk',
-    createdAt: Date.now() - 1000 * 60 * 9,
   },
   {
-    id: 'd5',
     action: 'Deployment script otomasyonu için GitHub Actions workflow yazılacak',
-    agendaCardId: 'i5',
     agendaTitle: 'Deployment süreci manuel adımlar içeriyor',
-    owner: 'Neşe',
-    createdAt: Date.now() - 1000 * 60 * 4,
   },
 ]
 
 const DEMO_DURATION_MINUTES = 27
+
+function buildDemoActions(playerNames: string[], now: number): SavedAction[] {
+  const owners = playerNames.length > 0 ? playerNames : ['Şeyda', 'Neşe', 'Soner', 'Haluk']
+  return DEMO_ACTION_TEMPLATES.map((tpl, i) => ({
+    id: `demo-${i}`,
+    action: tpl.action,
+    agendaCardId: `demo-agenda-${i}`,
+    agendaTitle: tpl.agendaTitle,
+    owner: owners[i % owners.length],
+    // 32, 25, 18, 9, 4 dakika önce — sabit offsetler, görsel tutarlılık için
+    createdAt: now - 1000 * 60 * [32, 25, 18, 9, 4][i],
+  }))
+}
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -72,12 +65,22 @@ function groupByOwner(actions: SavedAction[]): { owner: string; actions: SavedAc
     .sort((a, b) => b.actions.length - a.actions.length)
 }
 
-function computeDurationMinutes(actions: SavedAction[]): number {
-  if (actions.length === 0) return DEMO_DURATION_MINUTES
-  const first = Math.min(...actions.map((a) => a.createdAt))
-  const last = Math.max(...actions.map((a) => a.createdAt))
-  const minutes = Math.round((last - first) / 60_000)
-  return minutes > 0 ? minutes : DEMO_DURATION_MINUTES
+function computeDurationMinutes(
+  gameStartedAt: number | null,
+  actions: SavedAction[],
+  now: number,
+): number {
+  if (gameStartedAt != null) {
+    const minutes = Math.round((now - gameStartedAt) / 60_000)
+    return minutes > 0 ? minutes : 1
+  }
+  if (actions.length > 0) {
+    const first = Math.min(...actions.map((a) => a.createdAt))
+    const last = Math.max(...actions.map((a) => a.createdAt))
+    const minutes = Math.round((last - first) / 60_000)
+    return minutes > 0 ? minutes : 1
+  }
+  return DEMO_DURATION_MINUTES
 }
 
 function formatTime(ts: number): string {
@@ -156,17 +159,39 @@ function OwnerCard({ owner, actions }: { owner: string; actions: SavedAction[] }
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
 export default function SummaryPage() {
-  const storeActions = useGameStore((s) => s.actions)
-  const storeNotes = useGameStore((s) => s.retroNotes)
+  const storeActions  = useGameStore((s) => s.actions)
+  const storeNotes    = useGameStore((s) => s.retroNotes)
+  const players       = useGameStore((s) => s.players)
+  const gameStartedAt = useGameStore((s) => s.gameStartedAt)
 
-  const isUsingDummy = storeActions.length === 0
-  const actions = isUsingDummy ? DUMMY_ACTIONS : storeActions
+  // "now" değerini client'a sabitle — SSR mismatch ve süre kayması yaşamayalım.
+  // Page mount edildiği an dakika hassasiyetinde dondurulur.
+  const [now, setNow] = useState<number>(0)
+  useEffect(() => {
+    setNow(Date.now())
+  }, [])
+
+  const playerNames = useMemo(() => players.map((p) => p.name), [players])
+
+  const isUsingDemo = storeActions.length === 0
+  const actions = useMemo(
+    () => (isUsingDemo ? buildDemoActions(playerNames, now || Date.now()) : storeActions),
+    [isUsingDemo, storeActions, playerNames, now],
+  )
 
   const grouped = useMemo(() => groupByOwner(actions), [actions])
-  const durationMinutes = useMemo(() => computeDurationMinutes(actions), [actions])
+  const durationMinutes = useMemo(
+    () => computeDurationMinutes(gameStartedAt, actions, now || Date.now()),
+    [gameStartedAt, actions, now],
+  )
 
   const ownedCount = actions.filter((a) => a.owner).length
-  const ownerSet = new Set(actions.filter((a) => a.owner).map((a) => a.owner!))
+  const ownerSet   = new Set(actions.filter((a) => a.owner).map((a) => a.owner!))
+  // Katılımcı sayısı: gerçek owner'lar → store'daki oyuncular → retro notu yazanlar
+  const participantCount =
+    ownerSet.size ||
+    playerNames.length ||
+    new Set(storeNotes.map((n) => n.author)).size
 
   return (
     <div className="min-h-screen">
@@ -194,7 +219,7 @@ export default function SummaryPage() {
           <p className="text-sm text-slate-500">
             Retro tamamlandı. İşte takımın aldığı aksiyon kararları ve oyun istatistikleri.
           </p>
-          {isUsingDummy && (
+          {isUsingDemo && (
             <div className="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs px-3 py-1.5 rounded-full">
               <Sparkles className="w-3 h-3" />
               Demo veri gösteriliyor (henüz aksiyon kaydedilmedi)
@@ -212,7 +237,12 @@ export default function SummaryPage() {
             <span className="text-lg font-medium text-slate-400">dakika</span>
           </div>
           <div className="space-y-1 text-xs text-slate-500">
-            <p className="font-semibold text-slate-300">Oyun süresi</p>
+            <p className="font-semibold text-slate-300">
+              {gameStartedAt ? 'Oyun süresi' : 'Tahmini oyun süresi'}
+            </p>
+            {gameStartedAt && (
+              <p>Başlangıç: {formatTime(gameStartedAt)}</p>
+            )}
             <p>{storeNotes.length} retro notu işlendi</p>
             <p>{actions.length} aksiyon kararı alındı</p>
           </div>
@@ -222,7 +252,7 @@ export default function SummaryPage() {
         <section className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           <StatCard icon={ListChecks} value={actions.length} label="Toplam Aksiyon" />
           <StatCard icon={CheckCircle2} value={ownedCount} label="Sahiplenildi" />
-          <StatCard icon={Users} value={ownerSet.size || (isUsingDummy ? 4 : 0)} label="Katılımcı" />
+          <StatCard icon={Users} value={participantCount} label="Katılımcı" />
         </section>
 
         {/* Owners */}
