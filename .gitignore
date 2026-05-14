@@ -26,11 +26,13 @@ hs_err_pid*
 *.swo
 *~
 
-# ── Node / Angular ───────────────────────────────────────────────────
+# ── Node / Angular / Next.js ─────────────────────────────────────────
 node_modules/
 dist/
 .angular/
 .cache/
+.next/
+next-env.d.ts
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
