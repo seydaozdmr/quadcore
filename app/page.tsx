@@ -213,6 +213,13 @@ export default function Home() {
           <span className="bg-slate-800 px-2.5 py-1 rounded-full">Sprint 16</span>
           <span>{actions.length} aksiyon · {owned.length} sahiplenildi</span>
           <Link
+            href="/summary"
+            className="flex items-center gap-1 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 text-indigo-300 px-2.5 py-1 rounded-full transition-colors"
+          >
+            <Trophy className="w-3 h-3" />
+            Özet
+          </Link>
+          <Link
             href="/game"
             className="flex items-center gap-1.5 font-semibold text-white bg-indigo-600 hover:bg-indigo-500 px-3 py-1.5 rounded-full transition-colors"
           >
@@ -422,6 +429,17 @@ export default function Home() {
                 {owned.map((a) => <OwnedActionCard key={a.id} action={a} />)}
               </div>
             </div>
+          )}
+
+          {owned.length > 0 && unowned.length === 0 && (
+            <Link
+              href="/summary"
+              className="btn-primary w-full justify-center mt-4"
+            >
+              <Trophy className="w-4 h-4" />
+              Retro Özetini Gör
+              <ChevronRight className="w-4 h-4" />
+            </Link>
           )}
         </section>
       </main>

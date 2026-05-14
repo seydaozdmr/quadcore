@@ -1,8 +1,9 @@
 'use client'
 
+import Link from 'next/link'
 import GameBoard from '@/components/GameBoard'
 import { useGameStore } from '@/store/useGameStore'
-import { RotateCcw } from 'lucide-react'
+import { RotateCcw, Trophy } from 'lucide-react'
 
 export default function GamePage() {
   const players            = useGameStore((s) => s.players)
@@ -28,6 +29,13 @@ export default function GamePage() {
         </div>
         <div className="flex items-center gap-3">
           <span className="text-xs text-slate-500 bg-slate-800 px-2.5 py-1 rounded-full">Sprint 16</span>
+          <Link
+            href="/summary"
+            className="flex items-center gap-1 text-xs bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 text-indigo-300 px-2.5 py-1 rounded-full transition-colors"
+          >
+            <Trophy className="w-3 h-3" />
+            Özet
+          </Link>
           <button
             onClick={resetGame}
             className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-full transition-colors"
