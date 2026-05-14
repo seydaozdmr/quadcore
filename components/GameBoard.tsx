@@ -1,15 +1,23 @@
 'use client'
 
-import STATIONS, { STATION_META, TOTAL_STATIONS, type Station } from '@/lib/boardData'
+import STATIONS, { STATION_META, type Station } from '@/lib/boardData'
 import { useGameStore, type Player } from '@/store/useGameStore'
 
 // ─── Player token ─────────────────────────────────────────────────────────────
 
-function Token({ player }: { player: Player }) {
+function Token({ player, isMoving }: { player: Player; isMoving: boolean }) {
   return (
     <span
       title={player.name}
-      className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-[9px] font-bold text-white shadow ring-1 ring-white/30 ${player.color}`}
+      className={`
+        inline-flex items-center justify-center rounded-full text-[9px] font-bold text-white
+        transition-all duration-200
+        ${isMoving
+          ? 'w-6 h-6 ring-2 ring-white/90 animate-bounce shadow-xl scale-110'
+          : 'w-5 h-5 ring-1 ring-white/30 shadow'
+        }
+        ${player.color}
+      `}
     >
       {player.name[0]}
     </span>
@@ -19,38 +27,42 @@ function Token({ player }: { player: Player }) {
 // ─── Single cell ──────────────────────────────────────────────────────────────
 
 function Cell({
-  station, players, active,
+  station, players, active, movingPlayerId,
 }: {
-  station: Station; players: Player[]; active: boolean
+  station: Station
+  players: Player[]
+  active: boolean
+  movingPlayerId: string | null
 }) {
   const meta  = STATION_META[station.type]
   const here  = players.filter((p) => p.position === station.id)
+  const hasMovingPlayer = here.some((p) => p.id === movingPlayerId)
 
   return (
     <div
       style={{ gridColumn: station.gridCol, gridRow: station.gridRow }}
       className={`
         flex flex-col items-center justify-between gap-0.5
-        rounded-xl border p-1.5 select-none transition-all duration-200 min-h-0
+        rounded-xl border p-1.5 select-none transition-all duration-300 min-h-0
         ${meta.bg} ${meta.border}
-        ${active ? 'ring-2 ring-white/70 scale-[1.06] z-10 shadow-lg' : 'hover:brightness-110'}
+        ${hasMovingPlayer
+          ? 'ring-2 ring-white/90 scale-[1.08] z-20 brightness-125 shadow-xl'
+          : active
+            ? 'ring-2 ring-white/70 scale-[1.06] z-10 shadow-lg'
+            : 'hover:brightness-110'
+        }
       `}
     >
-      {/* Position number */}
       <span className="self-start text-[8px] font-bold text-white/25 leading-none">{station.id}</span>
-
-      {/* Emoji */}
       <span className="text-base leading-none">{meta.emoji}</span>
-
-      {/* Label */}
       <p className={`text-center text-[8px] font-medium leading-tight ${meta.text} line-clamp-2 w-full`}>
         {station.label}
       </p>
-
-      {/* Tokens */}
       {here.length > 0 && (
         <div className="flex flex-wrap justify-center gap-0.5">
-          {here.map((p) => <Token key={p.id} player={p} />)}
+          {here.map((p) => (
+            <Token key={p.id} player={p} isMoving={p.id === movingPlayerId} />
+          ))}
         </div>
       )}
     </div>
@@ -59,53 +71,49 @@ function Cell({
 
 // ─── Center panel ─────────────────────────────────────────────────────────────
 
-function CenterPanel() {
+function CenterPanel({ movingPlayerId }: { movingPlayerId: string | null }) {
   const players            = useGameStore((s) => s.players)
   const currentPlayerIndex = useGameStore((s) => s.currentPlayerIndex)
   const currentPlayer      = players[currentPlayerIndex]
-  const movePlayer         = useGameStore((s) => s.movePlayer)
-  const nextTurn           = useGameStore((s) => s.nextTurn)
-
-  function roll() {
-    const steps = Math.floor(Math.random() * 6) + 1
-    movePlayer(currentPlayer.id, steps)
-    nextTurn()
-  }
+  const movingPlayer       = movingPlayerId ? players.find((p) => p.id === movingPlayerId) : null
 
   return (
     <div
       style={{ gridColumn: '2 / 6', gridRow: '2 / 6' }}
       className="flex flex-col items-center justify-center gap-4 rounded-2xl bg-slate-900/60 border border-slate-700/40"
     >
-      {/* Logo */}
       <div className="text-center">
         <p className="text-lg">🎲</p>
         <p className="text-xs font-bold text-slate-300 tracking-widest uppercase">Retro-Opoly</p>
       </div>
 
-      {/* Current player */}
       <div className="text-center space-y-1">
-        <p className="text-[10px] text-slate-500 uppercase tracking-wider">Sıra</p>
+        <p className="text-[10px] text-slate-500 uppercase tracking-wider">
+          {movingPlayer ? 'Hareket Ediyor' : 'Sıra'}
+        </p>
         <div className="flex items-center gap-2 justify-center">
-          <span className={`w-3 h-3 rounded-full ${currentPlayer.color}`} />
-          <span className="text-sm font-semibold text-white">{currentPlayer.name}</span>
+          <span className={`w-3 h-3 rounded-full transition-all ${(movingPlayer ?? currentPlayer).color} ${movingPlayer ? 'animate-pulse' : ''}`} />
+          <span className="text-sm font-semibold text-white">
+            {(movingPlayer ?? currentPlayer).name}
+          </span>
         </div>
-        <p className="text-[10px] text-slate-500">İstasyon {currentPlayer.position}</p>
+        <p className="text-[10px] text-slate-500">
+          İstasyon {(movingPlayer ?? currentPlayer).position}
+        </p>
       </div>
 
-      {/* Roll button */}
-      <button
-        onClick={roll}
-        className="bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition-all shadow-lg"
-      >
-        🎲 Zar At
-      </button>
-
-      {/* All players mini */}
       <div className="flex gap-1.5 flex-wrap justify-center px-2">
         {players.map((p, i) => (
-          <div key={p.id} className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] transition-all
-            ${i === currentPlayerIndex ? 'bg-white/10 text-white' : 'text-slate-500'}`}>
+          <div
+            key={p.id}
+            className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] transition-all
+              ${p.id === movingPlayerId
+                ? 'bg-white/20 text-white ring-1 ring-white/40'
+                : i === currentPlayerIndex
+                  ? 'bg-white/10 text-white'
+                  : 'text-slate-500'
+              }`}
+          >
             <span className={`w-2 h-2 rounded-full ${p.color}`} />
             {p.name}
           </div>
@@ -117,10 +125,11 @@ function CenterPanel() {
 
 // ─── Board ────────────────────────────────────────────────────────────────────
 
-export default function GameBoard() {
+export default function GameBoard({ movingPlayerId }: { movingPlayerId?: string | null }) {
   const players            = useGameStore((s) => s.players)
   const currentPlayerIndex = useGameStore((s) => s.currentPlayerIndex)
   const currentPlayer      = players[currentPlayerIndex]
+  const resolvedMoving     = movingPlayerId ?? null
 
   return (
     <div className="space-y-4">
@@ -134,21 +143,19 @@ export default function GameBoard() {
           aspectRatio: '1 / 1',
         }}
       >
-        {/* Perimeter cells */}
         {STATIONS.map((station) => (
           <Cell
             key={station.id}
             station={station}
             players={players}
             active={currentPlayer?.position === station.id}
+            movingPlayerId={resolvedMoving}
           />
         ))}
 
-        {/* Center 4×4 */}
-        <CenterPanel />
+        <CenterPanel movingPlayerId={resolvedMoving} />
       </div>
 
-      {/* Legend */}
       <div className="flex flex-wrap gap-x-4 gap-y-1.5 justify-center">
         {(Object.entries(STATION_META) as [keyof typeof STATION_META, typeof STATION_META[keyof typeof STATION_META]][])
           .map(([type, meta]) => (
