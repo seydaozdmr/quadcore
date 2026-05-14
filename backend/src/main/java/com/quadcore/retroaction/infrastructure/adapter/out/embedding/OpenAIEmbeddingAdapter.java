@@ -20,7 +20,7 @@ import java.util.Map;
  * since Anthropic does not provide a native embedding API.
  */
 @Service
-@Profile({"openai", "anthropic"})
+@Profile("openai")
 public class OpenAIEmbeddingAdapter implements EmbeddingPort {
 
     private static final Logger log = LoggerFactory.getLogger(OpenAIEmbeddingAdapter.class);
