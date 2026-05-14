@@ -2,6 +2,7 @@
 
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { pickRandomFreeCard, type FreeCardDef } from '@/lib/freeCards'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -35,6 +36,19 @@ export interface Player {
   skippedTurn: boolean
 }
 
+// Çekilen kartın tipi — modal'a ne göstereceğimizi belirler
+export type DrawnCardType = 'AGENDA' | 'ACTION_CLAIM' | 'FREE_CARD' | null
+
+export interface DrawnCard {
+  type: DrawnCardType
+  // AGENDA: AgendaItem
+  agendaItem?: AgendaItem
+  // ACTION_CLAIM: SavedAction listesinden biri
+  action?: SavedAction
+  // FREE_CARD: sabit kart
+  freeCard?: FreeCardDef
+}
+
 const DEFAULT_PLAYERS: Player[] = [
   { id: 'p1', name: 'Şeyda',  color: 'bg-rose-500',    position: 0, skippedTurn: false },
   { id: 'p2', name: 'Neşe',   color: 'bg-sky-500',     position: 0, skippedTurn: false },
@@ -58,8 +72,18 @@ interface GameStore {
   nextTurn: () => void
   resetGame: () => void
 
+  // Kart destesi state
+  drawnCard: DrawnCard | null
+  drawAgendaCard: () => void
+  drawActionCard: () => void
+  drawFreeCard: () => void
+  closeCard: () => void
+
   // Aksiyon state
   actions: SavedAction[]
+  addAction: (payload: { action: string; agendaCardId: string; agendaTitle?: string }) => void
+  setActionOwner: (id: string, owner: string) => void
+  removeAction: (id: string) => void
 
   // Pre-game actions
   addRetroNote: (text: string, author: string) => void
@@ -67,16 +91,11 @@ interface GameStore {
   clearRetroNotes: () => void
   setAgenda: (items: AgendaItem[]) => void
   resetAgenda: () => void
-
-  // Action actions
-  addAction: (payload: { action: string; agendaCardId: string; agendaTitle?: string }) => void
-  setActionOwner: (id: string, owner: string) => void
-  removeAction: (id: string) => void
 }
 
 export const useGameStore = create<GameStore>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       // Pre-game
       retroNotes: [],
       agenda: [],
@@ -108,27 +127,41 @@ export const useGameStore = create<GameStore>()(
         })),
 
       resetGame: () =>
-        set({ players: DEFAULT_PLAYERS, currentPlayerIndex: 0, actions: [] }),
+        set({ players: DEFAULT_PLAYERS, currentPlayerIndex: 0, actions: [], drawnCard: null }),
+
+      // Kart destesi
+      drawnCard: null,
+
+      drawAgendaCard: () => {
+        const { agenda, agendaReady } = get()
+        const pool = agendaReady && agenda.length > 0 ? agenda : []
+        if (pool.length === 0) {
+          set({ drawnCard: { type: 'AGENDA', agendaItem: undefined } })
+          return
+        }
+        const item = pool[Math.floor(Math.random() * pool.length)]
+        set({ drawnCard: { type: 'AGENDA', agendaItem: item } })
+      },
+
+      drawActionCard: () => {
+        const { actions } = get()
+        const unowned = actions.filter((a) => !a.owner)
+        if (unowned.length === 0) {
+          set({ drawnCard: { type: 'ACTION_CLAIM', action: undefined } })
+          return
+        }
+        const action = unowned[Math.floor(Math.random() * unowned.length)]
+        set({ drawnCard: { type: 'ACTION_CLAIM', action } })
+      },
+
+      drawFreeCard: () => {
+        set({ drawnCard: { type: 'FREE_CARD', freeCard: pickRandomFreeCard() } })
+      },
+
+      closeCard: () => set({ drawnCard: null }),
 
       // Aksiyon state
       actions: [],
-
-      addRetroNote: (text, author) =>
-        set((s) => ({
-          retroNotes: [
-            ...s.retroNotes,
-            { id: crypto.randomUUID(), text, author },
-          ],
-        })),
-
-      removeRetroNote: (id) =>
-        set((s) => ({ retroNotes: s.retroNotes.filter((n) => n.id !== id) })),
-
-      clearRetroNotes: () => set({ retroNotes: [] }),
-
-      setAgenda: (items) => set({ agenda: items, agendaReady: true }),
-
-      resetAgenda: () => set({ agenda: [], agendaReady: false }),
 
       addAction: ({ action, agendaCardId, agendaTitle = '' }) =>
         set((s) => ({
@@ -152,6 +185,23 @@ export const useGameStore = create<GameStore>()(
 
       removeAction: (id) =>
         set((s) => ({ actions: s.actions.filter((a) => a.id !== id) })),
+
+      addRetroNote: (text, author) =>
+        set((s) => ({
+          retroNotes: [
+            ...s.retroNotes,
+            { id: crypto.randomUUID(), text, author },
+          ],
+        })),
+
+      removeRetroNote: (id) =>
+        set((s) => ({ retroNotes: s.retroNotes.filter((n) => n.id !== id) })),
+
+      clearRetroNotes: () => set({ retroNotes: [] }),
+
+      setAgenda: (items) => set({ agenda: items, agendaReady: true }),
+
+      resetAgenda: () => set({ agenda: [], agendaReady: false }),
     }),
     {
       name: 'retro-opoly-store',

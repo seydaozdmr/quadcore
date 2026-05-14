@@ -1,20 +1,67 @@
 'use client'
 
 import GameBoard from '@/components/GameBoard'
+import DeckModal from '@/components/DeckModal'
 import { useGameStore } from '@/store/useGameStore'
 import { RotateCcw } from 'lucide-react'
+import STATIONS from '@/lib/boardData'
+
+// Zar sonrası istasyon tipine göre kart çek
+function triggerDraw(
+  stationType: string,
+  drawAgendaCard: () => void,
+  drawActionCard: () => void,
+  drawFreeCard: () => void,
+) {
+  if (stationType === 'AGENDA')       return drawAgendaCard()
+  if (stationType === 'ACTION_CLAIM') return drawActionCard()
+  if (stationType === 'FREE_CARD')    return drawFreeCard()
+}
 
 export default function GamePage() {
   const players            = useGameStore((s) => s.players)
   const currentPlayerIndex = useGameStore((s) => s.currentPlayerIndex)
   const currentPlayer      = players[currentPlayerIndex]
   const movePlayer         = useGameStore((s) => s.movePlayer)
+  const setSkipTurn        = useGameStore((s) => s.setSkipTurn)
   const nextTurn           = useGameStore((s) => s.nextTurn)
   const resetGame          = useGameStore((s) => s.resetGame)
+  const drawAgendaCard     = useGameStore((s) => s.drawAgendaCard)
+  const drawActionCard     = useGameStore((s) => s.drawActionCard)
+  const drawFreeCard       = useGameStore((s) => s.drawFreeCard)
 
   function rollDice() {
+    if (currentPlayer.skippedTurn) {
+      setSkipTurn(currentPlayer.id, false)
+      nextTurn()
+      return
+    }
+
     const roll = Math.floor(Math.random() * 6) + 1
+    const newPos = (currentPlayer.position + roll) % 36
     movePlayer(currentPlayer.id, roll)
+
+    const station = STATIONS[newPos]
+
+    if (station.type === 'WAIT') {
+      setSkipTurn(currentPlayer.id, true)
+      nextTurn()
+      return
+    }
+
+    if (station.type === 'FORWARD_2') {
+      movePlayer(currentPlayer.id, 2)
+      nextTurn()
+      return
+    }
+
+    if (station.type === 'BACK_1') {
+      movePlayer(currentPlayer.id, -1)
+      nextTurn()
+      return
+    }
+
+    triggerDraw(station.type, drawAgendaCard, drawActionCard, drawFreeCard)
     nextTurn()
   }
 
@@ -54,26 +101,38 @@ export default function GamePage() {
               <span className={`w-3 h-3 rounded-full ${p.color}`} />
               <span className="text-slate-200 font-medium">{p.name}</span>
               <span className="text-slate-500 text-xs">İstasyon {p.position}</span>
+              {p.skippedTurn && (
+                <span className="text-xs text-slate-500 bg-slate-700 px-1.5 py-0.5 rounded-full">⏸ Bekliyor</span>
+              )}
             </div>
           ))}
         </div>
 
         {/* Zar at */}
         <div className="flex flex-col items-center gap-3">
-          <p className="text-slate-400 text-sm">
-            Sıra: <span className="text-white font-semibold">{currentPlayer.name}</span>
-          </p>
+          {currentPlayer.skippedTurn ? (
+            <p className="text-slate-400 text-sm">
+              <span className="text-white font-semibold">{currentPlayer.name}</span> bu turu bekliyor.
+            </p>
+          ) : (
+            <p className="text-slate-400 text-sm">
+              Sıra: <span className="text-white font-semibold">{currentPlayer.name}</span>
+            </p>
+          )}
           <button
             onClick={rollDice}
             className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm px-6 py-3 rounded-xl transition-colors shadow-lg"
           >
-            🎲 Zar At
+            {currentPlayer.skippedTurn ? '⏭ Turu Atla' : '🎲 Zar At'}
           </button>
         </div>
 
         {/* Tahta */}
         <GameBoard />
       </main>
+
+      {/* Kart modal — store'dan otomatik açılır */}
+      <DeckModal />
     </div>
   )
 }
