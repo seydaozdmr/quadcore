@@ -76,4 +76,35 @@ public final class Dtos {
             List<String> recurringThemes,
             String teamMorale) {
     }
+
+    // ── Dashboard (post-game summary) ──────────────────────────────────
+
+    public record DashboardSummaryResponse(
+            String roomCode,
+            String sprintName,
+            String phase,
+            LocalDateTime startedAt,
+            LocalDateTime endedAt,
+            long durationMinutes,
+            int totalItems,
+            int totalVotes,
+            int actionItemCount,
+            int participantCount,
+            List<AssigneeActionsResponse> assigneeActions) {
+    }
+
+    public record AssigneeActionsResponse(
+            String assignee,
+            List<ActionItemBriefResponse> actions) {
+    }
+
+    public record ActionItemBriefResponse(
+            Long id,
+            String text,
+            String category,
+            int votes,
+            LocalDate deadline,
+            String successCriteria,
+            String actionStatus) {
+    }
 }

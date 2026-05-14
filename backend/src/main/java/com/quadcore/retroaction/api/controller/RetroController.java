@@ -117,6 +117,11 @@ public class RetroController {
         return new SummaryResponse(summary, List.of(), null);
     }
 
+    @GetMapping("/{roomCode}/dashboard")
+    public DashboardSummaryResponse getDashboard(@PathVariable String roomCode) {
+        return retroService.getDashboard(roomCode);
+    }
+
     // ── Mapping helpers ─────────────────────────────────────────────────
 
     private static RetroSessionResponse toSessionResponse(RetroSession session) {
