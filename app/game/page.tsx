@@ -341,6 +341,9 @@ export default function GamePage() {
           <Link href="/" className="text-xs text-slate-400 hover:text-white bg-slate-800 px-3 py-1.5 rounded-full transition-colors">
             ← Kurulum
           </Link>
+          <Link href="/summary" className="text-xs text-amber-400 hover:text-amber-300 bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-full transition-colors">
+            🏆 Özet
+          </Link>
           <button
             onClick={resetGame}
             className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-full transition-colors"
