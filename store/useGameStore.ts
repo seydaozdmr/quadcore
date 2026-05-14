@@ -90,7 +90,7 @@ export const useGameStore = create<GameStore>()(
         set((s) => ({
           players: s.players.map((p) =>
             p.id === playerId
-              ? { ...p, position: (p.position + steps + 36) % 36 }
+              ? { ...p, position: (p.position + steps) % 20 }
               : p
           ),
         })),
