@@ -1,3 +1,49 @@
+# RetroAction AI
+
+AI-powered Agile Retrospective and Action Tracking Platform.
+
+## Architecture
+
+- **Pattern**: Hexagonal Architecture (Port/Adapter), DDD bounded contexts
+- **Backend**: Spring Boot 3.3, Java 21
+- **Frontend**: Angular 18 (Standalone Components + Signals)
+- **Database**: H2 in-memory (dev), PostgreSQL 16 + pgvector (prod)
+- **Profiles**: `mock` (no API key), `openai`, `anthropic`
+
+## Key Patterns
+
+- `LlmPort` / `EmbeddingPort` — AI provider abstraction interfaces (domain ports)
+- Adapters per provider: Claude, OpenAI, Mock
+- `RetroPhase` state machine: COLLECT -> VOTE -> ACTION -> SUMMARY
+- Java 21 records for all DTOs (no Lombok)
+- Constructor injection throughout
+
+## Package Structure
+
+```
+com.quadcore.retroaction
+├── api/controller/         TeamController, RetroController
+├── application/dto/        Dtos.java (request/response records)
+├── domain/
+│   ├── model/              Team, RetroSession, RetroItem, RetroPhase, RetroCategory, ActionStatus
+│   ├── port/out/           LlmPort, EmbeddingPort
+│   └── service/            RetroAIService, RetroService, TeamService
+└── infrastructure/
+    ├── adapter/out/llm/    ClaudeLlmAdapter, OpenAILlmAdapter, MockLlmAdapter
+    ├── adapter/out/embedding/  OpenAIEmbeddingAdapter, MockEmbeddingAdapter
+    ├── config/             WebConfig, DataSeeder
+    └── repository/         TeamRepository, RetroSessionRepository, RetroItemRepository
+```
+
+## Conventions
+
+- No Lombok; use Java records for DTOs and manual getters/setters for JPA entities
+- Constructor injection (no @Autowired on fields)
+- Domain layer has zero framework dependencies beyond JPA annotations
+- Adapters are selected via Spring `@Profile`
+
+---
+
 # Retro-Opoly: AI Mimari ve Strateji Dökümanı
 
 Bu döküman, Prompt Sprint AI Hackathon kapsamında geliştirdiğimiz "Retro-Opoly" projesinin temel mimarisini ve yapay zeka entegrasyon stratejisini açıklamaktadır.
@@ -24,10 +70,9 @@ Projemizde yapay zeka, sıradan bir metin üretici değil, "Sürecin Yöneticisi
 - **Prompt Stratejisi:** `Oyun loglarını (kim kaç kudos verdi, kim en çok aksiyonu üstlendi) incele. Her oyuncuya 'Ekip Koşucusu', 'Retro Gevezesi' gibi oyunlaştırma elementlerine uygun eğlenceli unvanlar ata.`
 
 ## 🛠️ Teknik Altyapı
-- **Frontend Framework:** Next.js (App Router)
-- **Stil & UI:** Tailwind CSS, Shadcn/UI
-- **State Yönetimi:** Zustand (Hızlı prototipleme için LocalStorage senkronizasyonu)
-- **AI Entegrasyonu:** Vercel AI SDK (Claude / OpenAI API)
+- **Frontend Framework:** Angular 18 (Standalone Components + Signals)
+- **Backend:** Spring Boot 3.3, Java 21
+- **AI Entegrasyonu:** Claude (Anthropic) / OpenAI API — `LlmPort` adaptör mimarisi
 
 ## 👥 Geliştirme Süreci (Agentic Workflow)
-Bu proje, Cursor ve Claude kullanılarak "Modüler Bağımsızlık" prensibiyle 3 saatte geliştirilmiştir. Proje 4 ana parçaya bölünmüş, State (Zustand) iskeleti AI tarafından hızlıca kurularak 4 takım üyesinin paralel çalışmasına (Pre-game, Board, AI Core, Dashboard) olanak sağlanmıştır.
+Bu proje, Cursor ve Claude kullanılarak "Modüler Bağımsızlık" prensibiyle 3 saatte geliştirilmiştir. Proje 4 ana parçaya bölünmüş, 4 takım üyesinin paralel çalışmasına (Pre-game, Board, AI Core, Dashboard) olanak sağlanmıştır.
