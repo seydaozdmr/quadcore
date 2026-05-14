@@ -57,6 +57,7 @@ interface GameStore {
   players: Player[]
   currentPlayerIndex: number
   movePlayer: (playerId: string, steps: number) => void
+  movePlayerOneStep: (playerId: string) => void
   setSkipTurn: (playerId: string, skip: boolean) => void
   nextTurn: () => void
   resetGame: () => void
@@ -96,7 +97,16 @@ export const useGameStore = create<GameStore>()(
         set((s) => ({
           players: s.players.map((p) =>
             p.id === playerId
-              ? { ...p, position: (p.position + steps) % 20 }
+              ? { ...p, position: ((p.position + steps) % 20 + 20) % 20 }
+              : p
+          ),
+        })),
+
+      movePlayerOneStep: (playerId) =>
+        set((s) => ({
+          players: s.players.map((p) =>
+            p.id === playerId
+              ? { ...p, position: (p.position + 1) % 20 }
               : p
           ),
         })),

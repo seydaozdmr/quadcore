@@ -4,19 +4,56 @@ import Link from 'next/link'
 import GameBoard from '@/components/GameBoard'
 import { useGameStore } from '@/store/useGameStore'
 import { RotateCcw, Trophy } from 'lucide-react'
+import { useState } from 'react'
+
+const DICE_FACES = ['', '⚀', '⚁', '⚂', '⚃', '⚄', '⚅']
 
 export default function GamePage() {
-  const players            = useGameStore((s) => s.players)
-  const currentPlayerIndex = useGameStore((s) => s.currentPlayerIndex)
-  const currentPlayer      = players[currentPlayerIndex]
-  const movePlayer         = useGameStore((s) => s.movePlayer)
-  const nextTurn           = useGameStore((s) => s.nextTurn)
-  const resetGame          = useGameStore((s) => s.resetGame)
+  const players             = useGameStore((s) => s.players)
+  const currentPlayerIndex  = useGameStore((s) => s.currentPlayerIndex)
+  const currentPlayer       = players[currentPlayerIndex]
+  const movePlayerOneStep   = useGameStore((s) => s.movePlayerOneStep)
+  const nextTurn            = useGameStore((s) => s.nextTurn)
+  const resetGame           = useGameStore((s) => s.resetGame)
+
+  const [lastRoll, setLastRoll]         = useState<number | null>(null)
+  const [displayRoll, setDisplayRoll]   = useState<number | null>(null)
+  const [isAnimating, setIsAnimating]   = useState(false)
+  const [movingPlayerId, setMovingPlayerId] = useState<string | null>(null)
 
   function rollDice() {
+    if (isAnimating) return
+
     const roll = Math.floor(Math.random() * 6) + 1
-    movePlayer(currentPlayer.id, roll)
-    nextTurn()
+    setLastRoll(roll)
+    setIsAnimating(true)
+
+    // 500ms zarı döndür efekti
+    let frame = 0
+    const cycleInterval = setInterval(() => {
+      setDisplayRoll(Math.floor(Math.random() * 6) + 1)
+      frame++
+    }, 80)
+
+    setTimeout(() => {
+      clearInterval(cycleInterval)
+      setDisplayRoll(roll)
+
+      // Adım adım piyon hareketi
+      const playerId = currentPlayer.id
+      setMovingPlayerId(playerId)
+      let step = 0
+      const moveInterval = setInterval(() => {
+        step++
+        movePlayerOneStep(playerId)
+        if (step >= roll) {
+          clearInterval(moveInterval)
+          setMovingPlayerId(null)
+          setIsAnimating(false)
+          nextTurn()
+        }
+      }, 380)
+    }, 500)
   }
 
   return (
@@ -67,20 +104,38 @@ export default function GamePage() {
         </div>
 
         {/* Zar at */}
-        <div className="flex flex-col items-center gap-3">
+        <div className="flex flex-col items-center gap-4">
           <p className="text-slate-400 text-sm">
             Sıra: <span className="text-white font-semibold">{currentPlayer.name}</span>
           </p>
-          <button
-            onClick={rollDice}
-            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm px-6 py-3 rounded-xl transition-colors shadow-lg"
-          >
-            🎲 Zar At
-          </button>
+
+          <div className="flex items-center gap-5">
+            <button
+              onClick={rollDice}
+              disabled={isAnimating}
+              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-sm px-6 py-3 rounded-xl transition-colors shadow-lg"
+            >
+              🎲 Zar At
+            </button>
+
+            {displayRoll !== null && (
+              <span
+                className={`text-5xl leading-none select-none ${isAnimating ? 'animate-pulse' : 'animate-bounce'}`}
+              >
+                {DICE_FACES[displayRoll]}
+              </span>
+            )}
+          </div>
+
+          {isAnimating && movingPlayerId && (
+            <p className="text-xs text-slate-400 animate-pulse">
+              {players.find((p) => p.id === movingPlayerId)?.name} ilerliyor…
+            </p>
+          )}
         </div>
 
         {/* Tahta */}
-        <GameBoard />
+        <GameBoard movingPlayerId={movingPlayerId} />
       </main>
     </div>
   )
