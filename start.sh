@@ -42,16 +42,16 @@ cd "$ROOT/backend"
 BACKEND_PID=$!
 
 # Frontend başlat (arka planda)
-echo "▶ Frontend başlatılıyor (localhost:4200)..."
-cd "$ROOT/frontend"
-npm start --silent &
+echo "▶ Frontend başlatılıyor (localhost:3000)..."
+cd "$ROOT"
+npm run dev --silent &
 FRONTEND_PID=$!
 
 echo ""
 echo "╔══════════════════════════════════════════╗"
 echo "║  RetroAction AI çalışıyor                ║"
 echo "║  Backend  → http://localhost:8080        ║"
-echo "║  Frontend → http://localhost:4200        ║"
+echo "║  Frontend → http://localhost:3000        ║"
 echo "║  H2/PG    → http://localhost:8080/h2-console ║"
 echo "║  Durdurmak için: Ctrl+C                  ║"
 echo "╚══════════════════════════════════════════╝"

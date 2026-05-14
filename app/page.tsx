@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import {
   Shuffle, Sparkles, UserCircle2, CheckCircle2,
   ChevronRight, RefreshCw, Layers, Trophy,
@@ -211,6 +212,12 @@ export default function Home() {
         <div className="flex items-center gap-3 text-xs text-slate-500">
           <span className="bg-slate-800 px-2.5 py-1 rounded-full">Sprint 16</span>
           <span>{actions.length} aksiyon · {owned.length} sahiplenildi</span>
+          <Link
+            href="/game"
+            className="flex items-center gap-1.5 font-semibold text-white bg-indigo-600 hover:bg-indigo-500 px-3 py-1.5 rounded-full transition-colors"
+          >
+            🎲 Oyuna Geç
+          </Link>
         </div>
       </header>
 

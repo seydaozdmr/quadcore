@@ -27,15 +27,38 @@ export interface SavedAction {
   createdAt: number
 }
 
+export interface Player {
+  id: string
+  name: string
+  color: string      // tailwind bg class — bg-rose-500, bg-sky-500, vb.
+  position: number   // 0-35 arası istasyon indeksi
+  skippedTurn: boolean
+}
+
+const DEFAULT_PLAYERS: Player[] = [
+  { id: 'p1', name: 'Şeyda',  color: 'bg-rose-500',    position: 0, skippedTurn: false },
+  { id: 'p2', name: 'Neşe',   color: 'bg-sky-500',     position: 0, skippedTurn: false },
+  { id: 'p3', name: 'Soner',  color: 'bg-violet-500',  position: 0, skippedTurn: false },
+  { id: 'p4', name: 'Haluk',  color: 'bg-amber-500',   position: 0, skippedTurn: false },
+]
+
 // ─── Store ────────────────────────────────────────────────────────────────────
 
 interface GameStore {
   // Pre-game
   retroNotes: RetroNote[]
-  agenda: AgendaItem[]        // AI'dan gelen; boşsa dummy kullanılır
+  agenda: AgendaItem[]
   agendaReady: boolean
 
-  // Actions (SMART)
+  // Oyuncu state
+  players: Player[]
+  currentPlayerIndex: number
+  movePlayer: (playerId: string, steps: number) => void
+  setSkipTurn: (playerId: string, skip: boolean) => void
+  nextTurn: () => void
+  resetGame: () => void
+
+  // Aksiyon state
   actions: SavedAction[]
 
   // Pre-game actions
@@ -54,9 +77,40 @@ interface GameStore {
 export const useGameStore = create<GameStore>()(
   persist(
     (set) => ({
+      // Pre-game
       retroNotes: [],
       agenda: [],
       agendaReady: false,
+
+      // Oyuncu state
+      players: DEFAULT_PLAYERS,
+      currentPlayerIndex: 0,
+
+      movePlayer: (playerId, steps) =>
+        set((s) => ({
+          players: s.players.map((p) =>
+            p.id === playerId
+              ? { ...p, position: (p.position + steps + 36) % 36 }
+              : p
+          ),
+        })),
+
+      setSkipTurn: (playerId, skip) =>
+        set((s) => ({
+          players: s.players.map((p) =>
+            p.id === playerId ? { ...p, skippedTurn: skip } : p
+          ),
+        })),
+
+      nextTurn: () =>
+        set((s) => ({
+          currentPlayerIndex: (s.currentPlayerIndex + 1) % s.players.length,
+        })),
+
+      resetGame: () =>
+        set({ players: DEFAULT_PLAYERS, currentPlayerIndex: 0, actions: [] }),
+
+      // Aksiyon state
       actions: [],
 
       addRetroNote: (text, author) =>
@@ -107,6 +161,8 @@ export const useGameStore = create<GameStore>()(
         agenda: s.agenda,
         agendaReady: s.agendaReady,
         actions: s.actions,
+        players: s.players,
+        currentPlayerIndex: s.currentPlayerIndex,
       }),
     }
   )
