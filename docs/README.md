@@ -61,8 +61,8 @@ Kullanıcı SMART alanlarını (sorumlu, tarih, başarı kriteri) doldurduktan s
 
 ```
 ┌──────────────────────────────────────────────────┐
-│                Angular 18 Frontend               │
-│          Standalone Components + Signals          │
+│              Next.js 15 Frontend                 │
+│     React 18 + Tailwind CSS + Zustand + AI SDK   │
 └────────────────────────┬─────────────────────────┘
                          │ REST API
 ┌────────────────────────┴─────────────────────────┐
@@ -133,7 +133,7 @@ com.quadcore.retroaction
 
 - Java 21+
 - Maven 3.9+ (veya mvnw kullanın)
-- Node.js 20+ (frontend için)
+- Node.js 20+ (Next.js frontend için)
 
 Opsiyonel:
 - PostgreSQL 16+ with pgvector (production için; varsayılan H2 in-memory)
@@ -174,12 +174,12 @@ export OPENAI_API_KEY=sk-your-key-here
 ### Frontend
 
 ```bash
-cd frontend
+# Proje kökünde
 npm install
-ng serve
+npm run dev
 ```
 
-Frontend `http://localhost:4200` adresinde çalışır ve backend'e proxy yapar.
+Frontend `http://localhost:3000` adresinde çalışır.
 
 ---
 
@@ -307,15 +307,28 @@ Bu sayede "Deploy sürecini hızlandır" gibi bir madde yazıldığında déjà 
 
 ```
 quadcore/
-├── CLAUDE.md                           # AI yönlendirme talimatları
-├── README.md                           # Bu dosya
+├── docs/
+│   ├── README.md                       # Bu dosya
+│   └── CLAUDE.md                       # AI yönlendirme talimatları
 ├── .env.example                        # Ortam değişkenleri şablonu
 ├── .gitignore
 │
-├── docs/
-│   ├── architecture.md                 # Sistem mimarisi detayları
-│   ├── phases.md                       # Retro faz state machine
-│   └── ai-strategy.md                  # AI entegrasyon stratejisi + prompt'lar
+├── app/                                # Next.js App Router
+│   ├── layout.tsx
+│   ├── page.tsx                        # Ana sayfa (SMART demo)
+│   ├── globals.css
+│   └── api/
+│       └── validate-smart/             # SMART doğrulama API route
+│
+├── components/
+│   └── SmartActionModal.tsx            # SMART Aksiyon modal bileşeni
+│
+├── store/
+│   └── useGameStore.ts                 # Zustand global state
+│
+├── next.config.ts
+├── tailwind.config.ts
+├── package.json                        # Next.js 15, React 18, AI SDK, Zustand
 │
 └── backend/
     ├── pom.xml                         # Maven — Spring Boot 3.3, JPA, H2, PostgreSQL
@@ -369,6 +382,9 @@ quadcore/
 
 | Karar | Neden |
 |-------|-------|
+| Next.js 15 (App Router) | Full-stack React framework; API route'ları doğrudan frontend içinde, ayrı proxy gerekmez |
+| Zustand | Minimal global state yönetimi, Redux boilerplate'i olmadan |
+| Vercel AI SDK | Claude entegrasyonu için streaming ve structured output desteği |
 | Monolith (modüler paketler) | Hackathon zaman kısıtı; DDD bounded context'leri paket seviyesinde ayrılmış |
 | H2 in-memory (varsayılan) | Sıfır konfigürasyonla çalışır, demo için yeterli |
 | Embedding JSON olarak saklanma | H2'de pgvector yok; production'da native `vector(1536)` type'a geçiş tek migration |
