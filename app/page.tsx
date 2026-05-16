@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import {
   Shuffle, Sparkles, UserCircle2, CheckCircle2,
@@ -8,7 +8,9 @@ import {
   Plus, X, Loader2, FileText, RotateCcw,
 } from 'lucide-react'
 import SmartActionModal from '@/components/SmartActionModal'
+import DejaVuAlert from '@/components/DejaVuAlert'
 import { useGameStore, type AgendaItem, type SavedAction } from '@/store/useGameStore'
+import type { DejaVuResult } from '@/app/api/check-dejavu/route'
 
 // ─── Fallback dummy data (API key yokken veya notlar girilmemişse) ────────────
 
@@ -129,6 +131,11 @@ export default function Home() {
   const [generating, setGenerating]   = useState(false)
   const [genError, setGenError]       = useState<string | null>(null)
 
+  // Déjà Vu state
+  const [dejaVu, setDejaVu]           = useState<DejaVuResult | null>(null)
+  const [dejaVuChecking, setDejaVuChecking] = useState(false)
+  const dejaVuTimer                   = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   // Step 1
   const [drawnItem, setDrawnItem]     = useState<AgendaItem | null>(null)
 
@@ -149,6 +156,32 @@ export default function Home() {
   const activeAgenda = agendaReady ? agenda : DUMMY_AGENDA
   const unowned = actions.filter((a) => !a.owner)
   const owned   = actions.filter((a) =>  a.owner)
+
+  // ── Déjà Vu: debounce kontrolü ──
+  useEffect(() => {
+    const text = noteText.trim()
+    if (!text || text.length < 10 || retroNotes.length === 0) {
+      setDejaVu(null)
+      return
+    }
+    if (dejaVuTimer.current) clearTimeout(dejaVuTimer.current)
+    dejaVuTimer.current = setTimeout(async () => {
+      setDejaVuChecking(true)
+      try {
+        const res = await fetch('/api/check-dejavu', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            newNote: text,
+            pastNotes: retroNotes.map((n) => ({ text: n.text, author: n.author })),
+          }),
+        })
+        if (res.ok) setDejaVu(await res.json())
+      } catch { /* sessiz hata */ }
+      finally { setDejaVuChecking(false) }
+    }, 700)
+    return () => { if (dejaVuTimer.current) clearTimeout(dejaVuTimer.current) }
+  }, [noteText, retroNotes])
 
   // ── Step 0: add note ──
   function handleAddNote() {
@@ -268,13 +301,18 @@ export default function Home() {
                     placeholder="Adın (opsiyonel)"
                     className="w-32 shrink-0 bg-slate-700/50 border border-slate-600/60 rounded-xl px-3 py-2.5 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/60 transition-all"
                   />
-                  <input
-                    value={noteText}
-                    onChange={(e) => setNoteText(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleAddNote()}
-                    placeholder='Retro notunu yaz... (Enter ile ekle)'
-                    className="flex-1 bg-slate-700/50 border border-slate-600/60 rounded-xl px-3 py-2.5 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/60 transition-all"
-                  />
+                  <div className="relative flex-1">
+                    <input
+                      value={noteText}
+                      onChange={(e) => { setNoteText(e.target.value); setDejaVu(null) }}
+                      onKeyDown={(e) => e.key === 'Enter' && handleAddNote()}
+                      placeholder='Retro notunu yaz... (Enter ile ekle)'
+                      className="w-full bg-slate-700/50 border border-slate-600/60 rounded-xl px-3 py-2.5 pr-8 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/60 transition-all"
+                    />
+                    {dejaVuChecking && (
+                      <Loader2 className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500 animate-spin" />
+                    )}
+                  </div>
                   <button
                     onClick={handleAddNote}
                     disabled={!noteText.trim()}
@@ -283,6 +321,11 @@ export default function Home() {
                     <Plus className="w-4 h-4" />
                   </button>
                 </div>
+
+                {/* Déjà Vu uyarısı */}
+                {dejaVu?.isRepeat && (
+                  <DejaVuAlert result={dejaVu} onDismiss={() => setDejaVu(null)} />
+                )}
               </div>
 
               {/* Notes list */}
